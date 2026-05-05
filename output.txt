@@ -1,0 +1,124 @@
+Below is a complete implementation of a database schema to store user and todo data using PostgreSQL. The schema includes tables for users and todos, with proper relationships, constraints, and security considerations.
+
+---
+
+### Database Schema Design
+
+1. **Users Table**:
+   - Stores user information such as `id`, `username`, `email`, `hashed_password`, etc.
+   - Ensures unique constraints on `username` and `email`.
+   - Uses a UUID for the primary key for better scalability and security.
+
+2. **Todos Table**:
+   - Stores todo items with fields like `id`, `user_id`, `title`, `description`, `is_completed`, etc.
+   - Links to the `users` table via a foreign key (`user_id`).
+   - Includes timestamps for tracking creation and updates.
+
+---
+
+### SQL Implementation
+
+```sql
+-- Enable UUID extension for generating UUIDs
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users Table
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    hashed_password TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Todos Table
+CREATE TABLE todos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+-- Indexes for faster lookups
+CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_todos_user_id ON todos (user_id);
+```
+
+---
+
+### Explanation of the Schema
+
+1. **Users Table**:
+   - `id`: A UUID primary key for unique identification.
+   - `username`: A unique username for the user.
+   - `email`: A unique email address for the user.
+   - `hashed_password`: Stores the hashed password for authentication (never store plaintext passwords).
+   - `created_at` and `updated_at`: Timestamps to track when the user was created or last updated.
+
+2. **Todos Table**:
+   - `id`: A UUID primary key for unique identification.
+   - `user_id`: A foreign key referencing the `id` in the `users` table.
+   - `title`: A short title for the todo item.
+   - `description`: A detailed description of the todo item.
+   - `is_completed`: A boolean flag to indicate if the todo is completed.
+   - `created_at` and `updated_at`: Timestamps to track when the todo was created or last updated.
+
+3. **Indexes**:
+   - Indexes are added to the `email` column in the `users` table and the `user_id` column in the `todos` table to optimize query performance.
+
+4. **Foreign Key Constraint**:
+   - The `user_id` in the `todos` table references the `id` in the `users` table, ensuring that todos are always associated with a valid user.
+   - The `ON DELETE CASCADE` ensures that if a user is deleted, all their associated todos are also deleted.
+
+---
+
+### Security Considerations
+
+1. **Hashed Password**:
+   - Always store passwords as securely hashed values (e.g., using bcrypt or Argon2 in your application layer).
+   - Never store plaintext passwords.
+
+2. **Input Validation**:
+   - Validate all user inputs in the application layer before inserting them into the database.
+
+3. **SQL Injection Prevention**:
+   - Use parameterized queries or an ORM (e.g., SQLAlchemy, Prisma) to prevent SQL injection attacks.
+
+4. **Access Control**:
+   - Ensure that only authorized users can access or modify their own todos.
+
+---
+
+### Example Queries
+
+1. **Insert a New User**:
+   ```sql
+   INSERT INTO users (username, email, hashed_password)
+   VALUES ('john_doe', 'john.doe@example.com', 'hashed_password_here');
+   ```
+
+2. **Insert a Todo**:
+   ```sql
+   INSERT INTO todos (user_id, title, description)
+   VALUES ('user-uuid-here', 'Buy groceries', 'Milk, eggs, bread');
+   ```
+
+3. **Fetch Todos for a User**:
+   ```sql
+   SELECT * FROM todos WHERE user_id = 'user-uuid-here';
+   ```
+
+4. **Mark a Todo as Completed**:
+   ```sql
+   UPDATE todos SET is_completed = TRUE, updated_at = CURRENT_TIMESTAMP
+   WHERE id = 'todo-uuid-here';
+   ```
+
+---
+
+This schema is designed to be scalable, secure, and easy to work with. You can integrate it with your backend using an ORM or raw SQL queries.
