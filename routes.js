@@ -1,7 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    PULSE · Route planner — Leaflet map + OSRM loop generation
-   Generates round-trip running loops for a target distance by
-   routing through waypoints sampled on a circle around the start.
+   Builds round-trip running loops for a target distance:
+   - pedestrian routing (FOSSGIS OSRM foot profile) so loops follow
+     paths and parks instead of car roads
+   - 8 waypoints sampled on a circle around the start
+   - 6 candidate loops (one per compass direction), scored by
+     self-overlap (no out-and-back!) and distance match; best 3 shown
    ═══════════════════════════════════════════════════════════════ */
 (() => {
   "use strict";
@@ -29,7 +33,7 @@
 
   const DEFAULT_START = { lat: 52.5145, lng: 13.3501 }; // Berlin, Tiergarten
   let start = { ...DEFAULT_START };
-  let routes = [];        // [{ name, latlngs, km, approx }]
+  let routes = [];        // [{ name, latlngs, km, overlap, approx }]
   let selectedIdx = -1;
   let routeLayers = [];
 
@@ -90,8 +94,17 @@
     return { lat: origin.lat + dLat, lng: origin.lng + dLng };
   }
 
+  function haversineKm(a, b) {
+    const R = 6371, toRad = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * toRad;
+    const dLng = (b[1] - a[1]) * toRad;
+    const s = Math.sin(dLat / 2) ** 2 +
+      Math.cos(a[0] * toRad) * Math.cos(b[0] * toRad) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
   // waypoints on a circle of radius r whose circumference passes through start
-  function loopWaypoints(origin, radiusKm, bearingDeg, samples = 6) {
+  function loopWaypoints(origin, radiusKm, bearingDeg, samples = 8) {
     const center = offset(origin, radiusKm, bearingDeg);
     const startAngle = bearingDeg + 180; // angle from center back to start
     const pts = [origin];
@@ -102,53 +115,87 @@
     return pts;
   }
 
-  /* ─── OSRM routing (with graceful fallback) ───────────────── */
-  async function osrmRoute(waypoints, profile) {
-    const coords = waypoints.map((p) => `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`).join(";");
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}` +
-                `?overview=full&geometries=geojson&continue_straight=true`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    try {
-      const res = await fetch(url, { signal: ctrl.signal });
-      if (!res.ok) return null;
-      const json = await res.json();
-      if (json.code !== "Ok" || !json.routes || !json.routes.length) return null;
-      const route = json.routes[0];
-      return {
-        latlngs: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
-        km: route.distance / 1000,
-      };
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
+  // fraction of the route that runs over the same street segment twice
+  // (out-and-back detector); segments snapped to an ~11 m grid
+  function overlapFraction(latlngs) {
+    const seen = new Set();
+    let dup = 0, total = 0;
+    const key = (p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+    for (let i = 1; i < latlngs.length; i++) {
+      const a = latlngs[i - 1], b = latlngs[i];
+      const len = haversineKm(a, b);
+      if (len === 0) continue;
+      total += len;
+      const ka = key(a), kb = key(b);
+      const k = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+      if (seen.has(k)) dup += len;
+      else seen.add(k);
     }
+    return total ? dup / total : 0;
+  }
+
+  /* ─── OSRM routing ────────────────────────────────────────── */
+  // Pedestrian graph first (follows footpaths and parks, no one-way
+  // detours); the generic demo server only as a last resort.
+  const ROUTERS = [
+    "https://routing.openstreetmap.de/routed-foot/route/v1/foot/",
+    "https://router.project-osrm.org/route/v1/foot/",
+  ];
+  let activeRouter = 0; // stick with the first router that answers
+
+  async function osrmRoute(waypoints) {
+    const coords = waypoints.map((p) => `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`).join(";");
+    for (let r = activeRouter; r < ROUTERS.length; r++) {
+      const url = `${ROUTERS[r]}${coords}` +
+                  `?overview=full&geometries=geojson&continue_straight=true&alternatives=false&steps=false`;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) continue;
+        const json = await res.json();
+        if (json.code !== "Ok" || !json.routes || !json.routes.length) continue;
+        activeRouter = r;
+        const route = json.routes[0];
+        return {
+          latlngs: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+          km: route.distance / 1000,
+        };
+      } catch {
+        continue;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    return null;
   }
 
   async function buildLoop(targetKm, bearingDeg) {
     let radius = targetKm / (2 * Math.PI);
-    for (const profile of ["foot", "driving"]) {
-      let result = await osrmRoute(loopWaypoints(start, radius, bearingDeg), profile);
-      if (!result) continue;
+    let result = await osrmRoute(loopWaypoints(start, radius, bearingDeg));
+    if (result) {
       // one correction pass if the snapped route misses the target badly
       if (Math.abs(result.km - targetKm) / targetKm > 0.12 && result.km > 0.2) {
         const corrected = await osrmRoute(
-          loopWaypoints(start, radius * (targetKm / result.km), bearingDeg), profile);
+          loopWaypoints(start, radius * (targetKm / result.km), bearingDeg));
         if (corrected && Math.abs(corrected.km - targetKm) < Math.abs(result.km - targetKm)) {
           result = corrected;
         }
       }
-      return { ...result, approx: false };
+      return { ...result, overlap: overlapFraction(result.latlngs), approx: false, bearing: bearingDeg };
     }
-    // offline / API unreachable → geometric circle as a rough sketch
+    return null;
+  }
+
+  function sketchLoop(targetKm, bearingDeg) {
+    const radius = targetKm / (2 * Math.PI);
     const pts = [];
     const center = offset(start, radius, bearingDeg);
     for (let a = 0; a <= 360; a += 10) {
       const p = offset(center, radius, bearingDeg + 180 + a);
       pts.push([p.lat, p.lng]);
     }
-    return { latlngs: pts, km: targetKm, approx: true };
+    return { latlngs: pts, km: targetKm, overlap: 0, approx: true, bearing: bearingDeg };
   }
 
   /* ─── Drawing & selection ─────────────────────────────────── */
@@ -162,7 +209,6 @@
     routes.forEach((r, i) => {
       const selected = i === selectedIdx;
       if (selected) {
-        // dark casing under the selected line for legibility on any tile
         routeLayers.push(L.polyline(r.latlngs, {
           color: "#0b0d12", weight: 9, opacity: 0.7, lineJoin: "round",
         }).addTo(map));
@@ -206,6 +252,12 @@
     $("#route-estimates").hidden = false;
   }
 
+  function overlapLabel(overlap) {
+    if (overlap < 0.1) return "echte Runde";
+    if (overlap < 0.25) return "fast ohne Doppelstrecke";
+    return `${Math.round(overlap * 100)} % doppelte Wege`;
+  }
+
   function renderOptions() {
     const wrap = $("#route-options");
     wrap.textContent = "";
@@ -216,10 +268,12 @@
       btn.setAttribute("role", "option");
       const left = document.createElement("span");
       left.className = "ro-name";
-      left.textContent = r.name;
+      left.textContent = (i === 0 ? "⭐ " : "") + r.name;
       const right = document.createElement("span");
       right.className = "ro-meta";
-      right.textContent = `${fmtKm(r.km)} km${r.approx ? " · Skizze" : ""}`;
+      right.textContent = r.approx
+        ? `${fmtKm(r.km)} km · Skizze`
+        : `${fmtKm(r.km)} km · ${overlapLabel(r.overlap)}`;
       btn.append(left, right);
       btn.addEventListener("click", () => selectRoute(i));
       wrap.appendChild(btn);
@@ -227,25 +281,49 @@
   }
 
   /* ─── Find-route action ───────────────────────────────────── */
-  const NAMES = ["Runde Nord ↺", "Runde Südost ↻", "Runde West ↺"];
-  const BEARINGS = [10, 130, 250];
+  const BEARINGS = [0, 60, 120, 180, 240, 300];
+  const COMPASS = ["Norden", "Nordosten", "Südosten", "Süden", "Südwesten", "Nordwesten"];
+
+  // quality score: penalize running the same street twice much harder
+  // than a small distance mismatch
+  function score(r, targetKm) {
+    return r.overlap * 3 + Math.abs(r.km - targetKm) / targetKm;
+  }
 
   $("#btn-find-route").addEventListener("click", async () => {
     const targetKm = Number($("#distance-slider").value);
     const btn = $("#btn-find-route");
     btn.disabled = true;
-    $("#route-status").textContent = `Suche ${fmtKm(targetKm)}-km-Runden ab deinem Startpunkt …`;
+    $("#route-status").textContent = `Prüfe ${BEARINGS.length} Runden-Kandidaten für ${fmtKm(targetKm)} km …`;
 
     try {
       const results = await Promise.all(BEARINGS.map((b) => buildLoop(targetKm, b)));
-      routes = results.map((r, i) => ({ ...r, name: NAMES[i] }));
-      // best match first
-      routes.sort((a, b) => Math.abs(a.km - targetKm) - Math.abs(b.km - targetKm));
+      let candidates = results
+        .map((r, i) => (r ? { ...r, name: `Runde Richtung ${COMPASS[i]}` } : null))
+        .filter(Boolean)
+        // drop degenerate loops (way too short = waypoints collapsed onto one road)
+        .filter((r) => r.km > targetKm * 0.5);
+
+      if (candidates.length === 0) {
+        // routing unreachable → geometric sketches as orientation
+        routes = BEARINGS.slice(0, 3).map((b, i) =>
+          ({ ...sketchLoop(targetKm, b), name: `Runde Richtung ${COMPASS[i]}` }));
+        renderOptions();
+        selectRoute(0);
+        $("#route-status").textContent =
+          "Routing-Dienst nicht erreichbar – Skizzen als Orientierung (gestrichelt).";
+        return;
+      }
+
+      candidates.sort((a, b) => score(a, targetKm) - score(b, targetKm));
+      routes = candidates.slice(0, 3);
       renderOptions();
       selectRoute(0);
-      $("#route-status").textContent = routes[0].approx
-        ? "Routing-Dienst nicht erreichbar – Skizzen als Orientierung (gestrichelt)."
-        : `${routes.length} Runden gefunden. Beste Übereinstimmung: ${fmtKm(routes[0].km)} km.`;
+
+      const best = routes[0];
+      $("#route-status").textContent = best.overlap < 0.25
+        ? `Beste Runde: ${fmtKm(best.km)} km, ${overlapLabel(best.overlap)} – sortiert nach Runden-Qualität.`
+        : `In dieser Gegend ist das Wegenetz dünn – beste gefundene Runde: ${fmtKm(best.km)} km (${overlapLabel(best.overlap)}). Verschiebe den Start etwas und versuch es erneut.`;
     } catch {
       $("#route-status").textContent = "Routensuche fehlgeschlagen – bitte erneut versuchen.";
     } finally {
