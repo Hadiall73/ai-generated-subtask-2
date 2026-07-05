@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PULSE · Running Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="aurora" aria-hidden="true">
+    <div class="aurora-blob b1"></div>
+    <div class="aurora-blob b2"></div>
+    <div class="aurora-blob b3"></div>
+  </div>
+
+  <div class="app">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="30" height="30">
+            <path d="M2 18 h7 l3 -9 5 16 4 -12 2 5 h7" fill="none" stroke="url(#pulseGrad)"
+                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="pulseGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#3987e5"/><stop offset="1" stop-color="#9085e9"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">PULSE</div>
+          <div class="brand-sub">Running Dashboard</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="greeting">
+          <span id="greeting-text">Guten Tag, Läufer:in</span>
+          <span class="greeting-date" id="greeting-date"></span>
+        </div>
+        <button class="btn ghost" id="btn-settings" aria-haspopup="dialog">⚙ Profil</button>
+      </div>
+    </header>
+
+    <!-- ═══════════ STAT TILES ═══════════ -->
+    <section class="tiles" aria-label="Tagesübersicht">
+      <article class="card tile" id="tile-cal">
+        <div class="tile-label">Kalorien heute</div>
+        <div class="tile-value" id="tile-cal-value">–</div>
+        <div class="tile-delta" id="tile-cal-delta"></div>
+        <svg class="tile-spark" id="tile-cal-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </article>
+      <article class="card tile" id="tile-dist">
+        <div class="tile-label">Distanz diese Woche</div>
+        <div class="tile-value" id="tile-dist-value">–</div>
+        <div class="tile-delta" id="tile-dist-delta"></div>
+        <svg class="tile-spark" id="tile-dist-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </article>
+      <article class="card tile tile-hr">
+        <div class="tile-label">Ø Puls (letzter Lauf)</div>
+        <div class="tile-value-row">
+          <div class="pulse-ring" aria-hidden="true"><span class="pulse-dot"></span></div>
+          <div class="tile-value" id="tile-hr-value">–</div>
+        </div>
+        <div class="tile-delta" id="tile-hr-delta"></div>
+      </article>
+      <article class="card tile">
+        <div class="tile-label">Blutdruck (letzte Messung)</div>
+        <div class="tile-value" id="tile-bp-value">–</div>
+        <div class="tile-delta" id="tile-bp-status"></div>
+      </article>
+    </section>
+
+    <!-- ═══════════ ROUTE PLANNER ═══════════ -->
+    <section class="card route-panel" aria-label="Routenplaner">
+      <div class="route-controls">
+        <div class="route-head">
+          <h2>Deine nächste Route</h2>
+          <p class="muted">Distanz wählen, Startpunkt setzen (Klick auf die Karte oder GPS) – PULSE findet die passende Runde.</p>
+        </div>
+
+        <div class="hero-distance">
+          <span class="hero-value" id="hero-distance">5,0</span>
+          <span class="hero-unit">km</span>
+        </div>
+        <input type="range" id="distance-slider" min="1" max="42" step="0.5" value="5"
+               aria-label="Ziel-Distanz in Kilometern">
+        <div class="slider-scale muted"><span>1 km</span><span>21,1 km</span><span>42 km</span></div>
+
+        <div class="route-actions">
+          <button class="btn primary" id="btn-find-route">
+            <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a5 5 0 0 1 5 5c0 3.5-5 9-5 9S3 9.5 3 6a5 5 0 0 1 5-5zm0 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="currentColor"/></svg>
+            Route finden
+          </button>
+          <button class="btn ghost" id="btn-locate">📍 Mein Standort</button>
+        </div>
+
+        <div class="route-estimates" id="route-estimates" hidden>
+          <div class="est"><span class="est-label">Distanz</span><span class="est-value" id="est-dist">–</span></div>
+          <div class="est"><span class="est-label">Dauer (dein Tempo)</span><span class="est-value" id="est-time">–</span></div>
+          <div class="est"><span class="est-label">Kalorien</span><span class="est-value" id="est-cal">–</span></div>
+        </div>
+
+        <div class="route-options" id="route-options" role="listbox" aria-label="Routen-Vorschläge"></div>
+        <p class="route-status muted" id="route-status">Startpunkt: Berlin, Tiergarten (Standard)</p>
+      </div>
+      <div class="route-map-wrap">
+        <div id="map" role="application" aria-label="Karte mit Laufroute"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ FILTER ROW (scopes everything below) ═══════════ -->
+    <div class="filter-row" role="group" aria-label="Zeitraum für alle Diagramme">
+      <span class="filter-label muted">Zeitraum</span>
+      <button class="chip active" data-range="7">7 Tage</button>
+      <button class="chip" data-range="30">30 Tage</button>
+      <button class="chip" data-range="90">90 Tage</button>
+    </div>
+
+    <!-- ═══════════ CHARTS ═══════════ -->
+    <section class="charts" aria-label="Trainings-Diagramme">
+
+      <article class="card chart-card">
+        <div class="chart-head">
+          <h3>Distanz pro Tag <span class="unit muted">km</span></h3>
+          <button class="btn ghost sm table-toggle" data-chart="dist" aria-pressed="false">Tabelle</button>
+        </div>
+        <div class="chart-body" id="chart-dist"></div>
+        <div class="chart-table" id="table-dist" hidden></div>
+      </article>
+
+      <article class="card chart-card">
+        <div class="chart-head">
+          <h3>Ø Puls pro Lauf <span class="unit muted">bpm</span></h3>
+          <button class="btn ghost sm table-toggle" data-chart="hr" aria-pressed="false">Tabelle</button>
+        </div>
+        <div class="chart-body" id="chart-hr"></div>
+        <div class="chart-table" id="table-hr" hidden></div>
+      </article>
+
+      <article class="card chart-card chart-wide">
+        <div class="chart-head">
+          <h3>Blutdruck <span class="unit muted">mmHg</span></h3>
+          <div class="chart-head-right">
+            <div class="legend" aria-hidden="false">
+              <span class="legend-item"><span class="legend-key" style="background:var(--series-1)"></span>Systolisch</span>
+              <span class="legend-item"><span class="legend-key" style="background:var(--series-5)"></span>Diastolisch</span>
+            </div>
+            <button class="btn ghost sm table-toggle" data-chart="bp" aria-pressed="false">Tabelle</button>
+          </div>
+        </div>
+        <div class="chart-body" id="chart-bp"></div>
+        <div class="chart-table" id="table-bp" hidden></div>
+        <form class="bp-form" id="bp-form">
+          <span class="bp-form-label">Neue Messung:</span>
+          <input type="number" id="bp-sys" min="70" max="250" placeholder="Sys" required aria-label="Systolisch">
+          <span class="muted">/</span>
+          <input type="number" id="bp-dia" min="40" max="150" placeholder="Dia" required aria-label="Diastolisch">
+          <button class="btn primary sm" type="submit">Speichern</button>
+        </form>
+      </article>
+
+    </section>
+
+    <footer class="foot muted">
+      PULSE · Demo-Trainingsdaten + deine lokal gespeicherten Messungen (bleiben im Browser) ·
+      Karten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · Routing © OSRM
+    </footer>
+  </div>
+
+  <!-- ═══════════ SETTINGS DIALOG ═══════════ -->
+  <dialog id="settings-dialog" class="settings">
+    <form method="dialog" class="settings-form" id="settings-form">
+      <h3>Dein Profil</h3>
+      <label>Gewicht (kg)
+        <input type="number" id="set-weight" min="30" max="250" step="0.5">
+      </label>
+      <label>Tempo (min/km)
+        <input type="number" id="set-pace" min="3" max="12" step="0.25">
+      </label>
+      <p class="muted sm-text">Wird für Kalorien- und Zeitschätzung der Routen verwendet.</p>
+      <div class="settings-actions">
+        <button class="btn ghost" value="cancel">Abbrechen</button>
+        <button class="btn primary" value="save" id="settings-save">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="tooltip" id="tooltip" role="status" hidden></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+  <script src="routes.js"></script>
+</body>
+</html>
