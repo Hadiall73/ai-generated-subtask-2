@@ -90,7 +90,10 @@ ai-video-production/
 2. Workflow importieren: `n8n/workflows/ai_video_pipeline.json`.
 3. `config/providers.example.json` → `config/providers.json` kopieren und
    **später** mit echten API-Keys füllen ([`docs/API_INTEGRATION.md`](docs/API_INTEGRATION.md)).
-4. Pipeline starten, dein Brief (Thema/Inhalt/Story) eingeben.
+4. Pipeline starten, dein Brief (Thema/Inhalt/Story) eingeben. Im selben Formular
+   wählst du **Video-Format** (Langes Video / Shorts / TikTok / Reels / Feed) und
+   **Länge** – Seitenverhältnis, Plattform und Längen-Limit werden automatisch
+   gesetzt und an alle Agenten weitergegeben.
 5. Nach jedem Agenten erscheint ein **Review-Formular** → prüfen, bearbeiten, freigeben.
 
 > **APIs kommen später.** Aktuell laufen die Agenten gegen konfigurierbare

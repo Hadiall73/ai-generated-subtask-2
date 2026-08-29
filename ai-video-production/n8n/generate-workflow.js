@@ -69,7 +69,35 @@ addNode({
         { fieldLabel: 'Zielgruppe (audience)', fieldType: 'text' },
         { fieldLabel: 'Nicht verändern (mustKeep, kommagetrennt)', fieldType: 'textarea' },
         {
-          fieldLabel: 'Plattformen',
+          fieldLabel: 'Video-Format',
+          fieldType: 'dropdown',
+          requiredField: true,
+          fieldOptions: {
+            values: [
+              { option: 'Langes Video (YouTube 16:9)' },
+              { option: 'YouTube Shorts (9:16)' },
+              { option: 'TikTok (9:16)' },
+              { option: 'Instagram Reels (9:16)' },
+              { option: 'Instagram Feed (1:1)' },
+            ],
+          },
+        },
+        {
+          fieldLabel: 'Videolänge',
+          fieldType: 'dropdown',
+          fieldOptions: {
+            values: [
+              { option: 'Auto (empfohlen fürs Format)' },
+              { option: '15 Sek' }, { option: '30 Sek' }, { option: '45 Sek' },
+              { option: '60 Sek' }, { option: '90 Sek' },
+              { option: '3 Min' }, { option: '5 Min' }, { option: '10 Min' },
+              { option: 'Eigene Länge (Feld unten)' },
+            ],
+          },
+        },
+        { fieldLabel: 'Eigene Länge in Sek. (optional)', fieldType: 'number' },
+        {
+          fieldLabel: 'Zusätzliche Export-Plattformen (optional)',
           fieldType: 'dropdown',
           multiselect: true,
           fieldOptions: {
@@ -79,7 +107,6 @@ addNode({
             ],
           },
         },
-        { fieldLabel: 'Zielgesamtlänge in Sek. (targetDurationSec)', fieldType: 'number' },
         { fieldLabel: 'Sprache (language)', fieldType: 'text' },
       ],
     },
@@ -91,8 +118,8 @@ addNode({
   position: [cursorX, ROW_Y],
 });
 sticky(
-  '## 🎬 Start hier\nCreative-Director-Brief. Deine Eingaben (Thema, Inhalt, Story) sind für alle Agenten **unveränderlich** und werden nur referenziert.',
-  cursorX - 20, ROW_Y - 240, 300, 200, 4
+  '## 🎬 Start hier\nCreative-Director-Brief. Deine Eingaben (Thema, Inhalt, Story) sind für alle Agenten **unveränderlich**.\n\nHier wählst du auch **Video-Format** (Langes Video / Shorts / TikTok / Reels / Feed) und **Länge**. Daraus werden Seitenverhältnis, Plattform und Längen-Limit automatisch gesetzt und an alle Agenten weitergegeben.',
+  cursorX - 20, ROW_Y - 300, 320, 260, 4
 );
 cursorX += COL;
 
@@ -103,6 +130,36 @@ addNode({
     jsCode: `// Baut das Wurzel-Projektobjekt aus dem Brief (project.schema.json).
 const f = $json;
 const csv = (s) => (s ? String(s).split(',').map(x => x.trim()).filter(Boolean) : []);
+
+// ---- Video-Format -> Plattform, Seitenverhältnis, Default-/Max-Länge ----
+const FORMATS = {
+  'Langes Video (YouTube 16:9)': { platform: 'youtube',         aspect: '16:9', defaultSec: 600, maxSec: null },
+  'YouTube Shorts (9:16)':       { platform: 'shorts',          aspect: '9:16', defaultSec: 45,  maxSec: 60  },
+  'TikTok (9:16)':               { platform: 'tiktok',          aspect: '9:16', defaultSec: 34,  maxSec: 180 },
+  'Instagram Reels (9:16)':      { platform: 'instagram_reels', aspect: '9:16', defaultSec: 30,  maxSec: 90  },
+  'Instagram Feed (1:1)':        { platform: 'instagram_feed',  aspect: '1:1',  defaultSec: 30,  maxSec: 60  },
+};
+const LENGTH_PRESETS = {
+  'Auto (empfohlen fürs Format)': null,
+  '15 Sek': 15, '30 Sek': 30, '45 Sek': 45, '60 Sek': 60, '90 Sek': 90,
+  '3 Min': 180, '5 Min': 300, '10 Min': 600,
+};
+
+const fmtKey = f['Video-Format'] || 'YouTube Shorts (9:16)';
+const fmt = FORMATS[fmtKey] || FORMATS['YouTube Shorts (9:16)'];
+
+// Länge bestimmen: eigene Zahl > Preset-Auswahl > Format-Default
+const custom = Number(f['Eigene Länge in Sek. (optional)']) || 0;
+const preset = LENGTH_PRESETS[f['Videolänge']];
+let duration = custom > 0 ? custom : (preset != null ? preset : fmt.defaultSec);
+// Auf Plattform-Limit begrenzen (falls vorhanden)
+let durationCapped = false;
+if (fmt.maxSec && duration > fmt.maxSec) { duration = fmt.maxSec; durationCapped = true; }
+
+// Plattformen: gewähltes Format zuerst, dann optionale Zusatz-Exporte (dedupe)
+const extra = [].concat(f['Zusätzliche Export-Plattformen (optional)'] || []);
+const platforms = [...new Set([fmt.platform, ...extra])];
+
 const project = {
   projectId: 'proj-' + Date.now(),
   schemaVersion: '1.0.0',
@@ -111,9 +168,12 @@ const project = {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     creativeDirector: 'me',
-    platforms: [].concat(f['Plattformen'] || ['youtube']),
+    videoFormat: fmtKey,
+    platforms,
+    aspectRatios: [fmt.aspect],
     language: f['Sprache (language)'] || 'de',
-    targetDurationSec: Number(f['Zielgesamtlänge in Sek. (targetDurationSec)'] || 60),
+    targetDurationSec: duration,
+    durationCappedToPlatformLimit: durationCapped,
   },
   creativeBrief: {
     topic: f['Thema (topic)'] || '',
