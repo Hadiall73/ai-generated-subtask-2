@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/scenes.schema.json",
+  "title": "Scene",
+  "description": "Ein Szenen-Objekt. Output des Director Agents. Die Szenen-ID ist der zentrale Anker: Shots, Voice und Audio referenzieren sie.",
+  "type": "object",
+  "required": ["sceneId", "index", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "sceneId": { "type": "string", "description": "Eindeutig, z. B. 'sc-01'. Anker für shots/voice/audio." },
+    "index": { "type": "integer", "description": "Reihenfolge im Video (0-basiert)." },
+    "title": { "type": "string" },
+    "summary": { "type": "string", "description": "Was passiert in dieser Szene (Handlung)." },
+    "scriptRef": { "type": "string", "description": "Verweis auf den Skript-Beat (structure.beats[].id)." },
+    "atmosphere": {
+      "type": "object",
+      "description": "Stimmung & Emotion der Szene.",
+      "properties": {
+        "mood": { "type": "string" },
+        "emotion": { "type": "string" },
+        "energy": { "enum": ["low", "medium", "high", "peak"] },
+        "keywords": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "startSec": { "type": "number" },
+        "durationSec": { "type": "number" },
+        "pacing": { "enum": ["slow", "medium", "fast", "dynamic"] }
+      }
+    },
+    "locationRef": { "type": "string", "description": "ID aus consistency.locations." },
+    "characterRefs": { "type": "array", "items": { "type": "string" }, "description": "IDs aus consistency.characters." },
+    "transitionIn": {
+      "type": "object",
+      "description": "Übergang IN diese Szene.",
+      "properties": {
+        "type": { "enum": ["cut", "fade", "dissolve", "wipe", "match_cut", "whip_pan", "morph", "j_cut", "l_cut"] },
+        "durationSec": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "transitionOut": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["cut", "fade", "dissolve", "wipe", "match_cut", "whip_pan", "morph", "j_cut", "l_cut"] },
+        "durationSec": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "directorNotes": { "type": "string", "description": "Regie-Hinweise (Vorschlag)." }
+  }
+}

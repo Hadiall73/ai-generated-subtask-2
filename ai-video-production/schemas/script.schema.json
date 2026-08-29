@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/script.schema.json",
+  "title": "Script",
+  "description": "Output des Story Agents. Enthält das aufbereitete Skript UND die Verbesserungsvorschläge. Der Story Agent verändert deinen Inhalt NICHT eigenmächtig – er liefert eine 'enhanced'-Fassung als VORSCHLAG plus eine Liste konkreter Vorschläge, die du einzeln annehmen/ablehnen kannst.",
+  "type": "object",
+  "required": ["enhancedScript", "suggestions"],
+  "additionalProperties": false,
+  "properties": {
+    "logline": { "type": "string", "description": "Ein-Satz-Zusammenfassung der Story." },
+    "hook": {
+      "type": "object",
+      "description": "Der Aufhänger für die ersten ~3 Sekunden.",
+      "properties": {
+        "text": { "type": "string" },
+        "type": { "enum": ["question", "bold_statement", "visual_shock", "curiosity_gap", "pattern_interrupt", "story_open"] },
+        "rationale": { "type": "string" }
+      }
+    },
+    "structure": {
+      "type": "object",
+      "description": "Dramaturgischer Aufbau.",
+      "properties": {
+        "model": { "type": "string", "description": "z. B. 'Hook-Story-Payoff', 3-Akt, AIDA." },
+        "beats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "text": { "type": "string" },
+              "purpose": { "type": "string" },
+              "approxDurationSec": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "enhancedScript": {
+      "type": "string",
+      "description": "VORSCHLAG einer verbesserten Skriptfassung (Dramaturgie/Spannung/Hook). Kein Ersatz für deinen Inhalt, bis du freigibst."
+    },
+    "suggestions": {
+      "type": "array",
+      "description": "Konkrete, einzeln annehmbare Vorschläge.",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "suggestion"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "enum": ["hook", "pacing", "tension", "clarity", "emotion", "cta", "cut", "reorder"] },
+          "target": { "type": "string", "description": "Auf welchen Teil des Skripts sich der Vorschlag bezieht." },
+          "original": { "type": "string" },
+          "suggestion": { "type": "string" },
+          "rationale": { "type": "string" },
+          "status": { "enum": ["proposed", "accepted", "rejected", "edited"], "default": "proposed" }
+        }
+      }
+    }
+  }
+}

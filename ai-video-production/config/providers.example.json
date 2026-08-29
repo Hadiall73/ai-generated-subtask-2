@@ -1,0 +1,103 @@
+{
+  "_comment": "Kopiere diese Datei zu 'providers.json' und trage SPÄTER echte Endpunkte/Keys ein. providers.json ist per .gitignore ausgeschlossen (keine Secrets ins Repo!). Alle Blöcke sind provider-agnostisch aufgebaut: jeder Anbieter hat 'type', 'endpoint', 'apiKeyEnv' (Name der Umgebungsvariable, NICHT der Key selbst) und 'model'/'options'.",
+  "version": "1.0.0",
+
+  "llm": {
+    "_comment": "LLM-Anbieter für die denkenden Agenten (Story/Director/Cinematography/Visual/Voice-Planung/Editor/Critic). In agents.config.json wird pro Agent auf einen dieser Einträge verwiesen.",
+    "default": "openai_compatible",
+    "providers": {
+      "openai_compatible": {
+        "type": "chat.completions",
+        "endpoint": "https://PLATZHALTER/v1/chat/completions",
+        "apiKeyEnv": "LLM_API_KEY",
+        "model": "MODELL-SPAETER-EINTRAGEN",
+        "options": { "temperature": 0.7, "max_tokens": 4000, "response_format": "json" }
+      },
+      "anthropic": {
+        "type": "messages",
+        "endpoint": "https://PLATZHALTER/v1/messages",
+        "apiKeyEnv": "ANTHROPIC_API_KEY",
+        "model": "MODELL-SPAETER-EINTRAGEN",
+        "options": { "max_tokens": 4000 }
+      },
+      "local_ollama": {
+        "type": "chat.completions",
+        "endpoint": "http://localhost:11434/v1/chat/completions",
+        "apiKeyEnv": "OLLAMA_API_KEY",
+        "model": "MODELL-SPAETER-EINTRAGEN",
+        "options": { "temperature": 0.7 }
+      }
+    }
+  },
+
+  "tts": {
+    "_comment": "Voice-/TTS-Ausgabe (Text-to-Speech). 'Voice API-ready' – hier später den TTS-Anbieter eintragen. Der Voice & Audio Agent plant Prosodie provider-neutral; hier wird die Sprachausgabe erzeugt.",
+    "default": "tts_generic",
+    "providers": {
+      "tts_generic": {
+        "type": "rest",
+        "endpoint": "https://PLATZHALTER/tts",
+        "apiKeyEnv": "TTS_API_KEY",
+        "model": "STIMME/MODELL-SPAETER",
+        "output": { "format": "mp3", "sampleRate": 44100 },
+        "voiceMap": { "narrator": "VOICE-ID-SPAETER", "character:hero": "VOICE-ID-SPAETER" }
+      }
+    }
+  },
+
+  "image": {
+    "_comment": "Bild-Generator für 'kind: image' Visuals.",
+    "default": "image_generic",
+    "providers": {
+      "image_generic": {
+        "type": "rest",
+        "endpoint": "https://PLATZHALTER/images/generate",
+        "apiKeyEnv": "IMAGE_API_KEY",
+        "model": "MODELL-SPAETER",
+        "output": { "format": "png" }
+      }
+    }
+  },
+
+  "video": {
+    "_comment": "Video-Generator für 'kind: video' / 'image_to_video' Visuals.",
+    "default": "video_generic",
+    "providers": {
+      "video_generic": {
+        "type": "rest",
+        "endpoint": "https://PLATZHALTER/video/generate",
+        "apiKeyEnv": "VIDEO_API_KEY",
+        "model": "MODELL-SPAETER",
+        "output": { "format": "mp4", "fps": 30 }
+      }
+    }
+  },
+
+  "music": {
+    "_comment": "Musik-/SFX-Generierung oder -Bibliothek für audio[].",
+    "default": "music_generic",
+    "providers": {
+      "music_generic": {
+        "type": "rest",
+        "endpoint": "https://PLATZHALTER/music/generate",
+        "apiKeyEnv": "MUSIC_API_KEY",
+        "model": "MODELL-SPAETER"
+      }
+    }
+  },
+
+  "ffmpeg": {
+    "_comment": "Render-Stufe. Lokaler FFmpeg-Aufruf oder ein Render-Service. Interpretiert editing.timeline.",
+    "mode": "local",
+    "binaryPath": "ffmpeg",
+    "workdir": "./render",
+    "endpoint": "https://PLATZHALTER/render"
+  },
+
+  "social": {
+    "_comment": "Auto-Publishing pro Plattform (ganz am Ende). Erst nach deiner finalen Freigabe.",
+    "youtube":   { "enabled": false, "apiKeyEnv": "YOUTUBE_API_KEY" },
+    "tiktok":    { "enabled": false, "apiKeyEnv": "TIKTOK_API_KEY" },
+    "instagram": { "enabled": false, "apiKeyEnv": "INSTAGRAM_API_KEY" }
+  }
+}

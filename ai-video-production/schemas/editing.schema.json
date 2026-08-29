@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/editing.schema.json",
+  "title": "EditingPlan",
+  "description": "Schnittplan / EDL. Output des Editor Agents. Verknüpft Visuals, Voice und Audio zu einer Timeline und definiert Transitions, Untertitel und Synchronisation. Kann später von FFmpeg (oder einem NLE-Export) interpretiert werden.",
+  "type": "object",
+  "required": ["timeline"],
+  "additionalProperties": false,
+  "properties": {
+    "targetDurationSec": { "type": "number" },
+    "framerate": { "type": "number", "default": 30 },
+    "timeline": {
+      "type": "array",
+      "description": "Geordnete Clip-Sequenz. Jeder Eintrag bindet ein Visual an Voice/Audio und ein Zeitfenster.",
+      "items": {
+        "type": "object",
+        "required": ["clipId", "startSec", "durationSec"],
+        "properties": {
+          "clipId": { "type": "string" },
+          "sceneId": { "type": "string" },
+          "shotId": { "type": "string" },
+          "visualRef": { "type": "string", "description": "visuals[].visualId." },
+          "voiceRefs": { "type": "array", "items": { "type": "string" }, "description": "voice[].voiceId." },
+          "audioRefs": { "type": "array", "items": { "type": "string" }, "description": "audio[].audioId." },
+          "startSec": { "type": "number" },
+          "durationSec": { "type": "number" },
+          "inPointSec": { "type": "number", "description": "Trim-Start im Quellclip." },
+          "outPointSec": { "type": "number" },
+          "speed": { "type": "number", "default": 1 },
+          "transitionIn": {
+            "type": "object",
+            "properties": {
+              "type": { "enum": ["cut", "fade", "dissolve", "wipe", "slide", "zoom", "whip_pan", "match_cut"] },
+              "durationSec": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "subtitles": {
+      "type": "object",
+      "description": "Untertitel / Captions (wichtig für Shorts/TikTok/Reels).",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "style": {
+          "type": "object",
+          "properties": {
+            "font": { "type": "string" },
+            "size": { "type": "string" },
+            "color": { "type": "string" },
+            "highlight": { "type": "string", "description": "Karaoke-/Wort-Highlight-Farbe." },
+            "position": { "enum": ["top", "center", "bottom"] },
+            "animation": { "type": "string" }
+          }
+        },
+        "cues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "startSec": { "type": "number" },
+              "endSec": { "type": "number" },
+              "text": { "type": "string" },
+              "voiceRef": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "sync": {
+      "type": "array",
+      "description": "Explizite Synchronisationspunkte zwischen Bild, Voice und Audio (z. B. Beat-Match, Betonung auf Cut).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "atSec": { "type": "number" },
+          "description": { "type": "string" },
+          "locks": { "type": "array", "items": { "type": "string" }, "description": "Refs, die exakt hier zusammenfallen." }
+        }
+      }
+    },
+    "platformVariants": {
+      "type": "array",
+      "description": "Export-Varianten je Plattform (Seitenverhältnis/Länge).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "platform": { "enum": ["youtube", "shorts", "tiktok", "instagram_reels", "instagram_feed"] },
+          "aspectRatio": { "enum": ["16:9", "9:16", "1:1", "4:5"] },
+          "maxDurationSec": { "type": "number" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "editorNotes": { "type": "string" }
+  }
+}

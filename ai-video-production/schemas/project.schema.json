@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/project.schema.json",
+  "title": "VideoProject",
+  "description": "Wurzel-Objekt der gesamten Produktion. Wächst Schritt für Schritt: jeder Agent liest den bisherigen Stand und ergänzt SEINEN Abschnitt. Der Brief des Creative Directors (creativeBrief) ist unveränderlich – Agenten dürfen ihn nur referenzieren und Vorschläge machen, niemals überschreiben.",
+  "type": "object",
+  "required": ["projectId", "meta", "creativeBrief", "pipeline"],
+  "additionalProperties": false,
+  "properties": {
+    "projectId": {
+      "type": "string",
+      "description": "Eindeutige Projekt-ID (z. B. UUID oder Slug)."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "default": "1.0.0"
+    },
+    "meta": {
+      "type": "object",
+      "required": ["title", "platforms"],
+      "additionalProperties": true,
+      "properties": {
+        "title": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "creativeDirector": { "type": "string", "description": "Name/ID des Creative Directors (du)." },
+        "platforms": {
+          "type": "array",
+          "description": "Zielplattformen. Steuern Seitenverhältnis, Länge und Schnittrhythmus.",
+          "items": { "enum": ["youtube", "shorts", "tiktok", "instagram_reels", "instagram_feed"] }
+        },
+        "language": { "type": "string", "default": "de" },
+        "targetDurationSec": { "type": "number", "description": "Zielgesamtlänge in Sekunden." },
+        "aspectRatios": {
+          "type": "array",
+          "items": { "enum": ["16:9", "9:16", "1:1", "4:5"] }
+        },
+        "tone": { "type": "string", "description": "Grundton (z. B. inspirierend, dokumentarisch, humorvoll)." }
+      }
+    },
+    "creativeBrief": {
+      "type": "object",
+      "description": "DEIN Input als Creative Director. UNVERÄNDERLICH für alle Agenten. Enthält Thema, Inhalt und Story-Grundidee.",
+      "required": ["topic", "content", "storyIdea"],
+      "additionalProperties": true,
+      "properties": {
+        "topic": { "type": "string", "description": "Das Thema." },
+        "content": { "type": "string", "description": "Der eigentliche Inhalt / das Rohskript / die Kernaussagen." },
+        "storyIdea": { "type": "string", "description": "Die Story-Grundidee / dramaturgische Absicht." },
+        "goal": { "type": "string", "description": "Ziel des Videos (z. B. Reichweite, Aufklärung, Verkauf)." },
+        "audience": { "type": "string", "description": "Zielgruppe." },
+        "mustKeep": {
+          "type": "array",
+          "description": "Elemente/Aussagen, die die Agenten NICHT verändern dürfen.",
+          "items": { "type": "string" }
+        },
+        "references": {
+          "type": "array",
+          "description": "Referenzen für Stil/Look (Links, Stichworte, Moodboard-URLs).",
+          "items": { "type": "string" }
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Randbedingungen (Budget, Länge, No-Gos).",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "script":    { "$ref": "script.schema.json" },
+    "scenes":    { "type": "array", "items": { "$ref": "scenes.schema.json" } },
+    "shots":     { "type": "array", "items": { "$ref": "shots.schema.json" } },
+    "visuals":   { "type": "array", "items": { "$ref": "visuals.schema.json" } },
+    "voice":     { "type": "array", "items": { "$ref": "voice.schema.json" } },
+    "audio":     { "type": "array", "items": { "$ref": "audio.schema.json" } },
+    "editing":   { "$ref": "editing.schema.json" },
+    "critique":  { "$ref": "critique.schema.json" },
+    "consistency": {
+      "type": "object",
+      "description": "Zentrale Referenzbibliothek für visuelle Konsistenz. Vom Visual Agent gepflegt, von allen genutzt.",
+      "additionalProperties": false,
+      "properties": {
+        "characters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "description"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "description": { "type": "string", "description": "Feste visuelle Merkmale (Aussehen, Kleidung, Alter)." },
+              "referencePrompt": { "type": "string", "description": "Kanonischer Prompt-Baustein, in jedem Shot wiederverwendet." },
+              "referenceImageRefs": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "description"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "referencePrompt": { "type": "string" },
+              "referenceImageRefs": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "styleGuide": {
+          "type": "object",
+          "description": "Gesamt-Look: Farbwelt, Filmstil, Grading, Grain, Objektiv-Look.",
+          "properties": {
+            "visualStyle": { "type": "string" },
+            "colorPalette": { "type": "array", "items": { "type": "string" } },
+            "lighting": { "type": "string" },
+            "grade": { "type": "string" },
+            "negativePrompt": { "type": "string", "description": "Global zu vermeiden (Artefakte, Stile)." }
+          }
+        }
+      }
+    },
+    "pipeline": {
+      "type": "object",
+      "description": "Zustandsmaschine des Human-in-the-loop-Prozesses.",
+      "required": ["currentStage", "stages"],
+      "additionalProperties": false,
+      "properties": {
+        "currentStage": {
+          "enum": ["brief", "story", "director", "cinematography", "visual", "voice_audio", "editor", "critic", "approved_for_render", "rendered", "published"]
+        },
+        "stages": {
+          "type": "array",
+          "description": "Historie & Freigabestatus jeder Stufe.",
+          "items": {
+            "type": "object",
+            "required": ["stage", "status"],
+            "properties": {
+              "stage": { "type": "string" },
+              "status": { "enum": ["pending", "generated", "in_review", "changes_requested", "approved", "skipped"] },
+              "agent": { "type": "string" },
+              "generatedAt": { "type": "string", "format": "date-time" },
+              "approvedAt": { "type": "string", "format": "date-time" },
+              "approvedBy": { "type": "string" },
+              "directorNotes": { "type": "string", "description": "Deine Änderungswünsche/Anmerkungen bei diesem Schritt." },
+              "revision": { "type": "integer", "default": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

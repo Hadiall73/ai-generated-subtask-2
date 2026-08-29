@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/critique.schema.json",
+  "title": "Critique",
+  "description": "Qualitätsbewertung des Gesamtkonzepts VOR dem Rendern. Output des Critic / Quality Agents. Liefert Scores + konkrete, priorisierte Verbesserungsvorschläge. Blockiert das Rendern nicht automatisch – du entscheidest.",
+  "type": "object",
+  "required": ["verdict", "scores", "issues"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": { "enum": ["ready", "ready_with_notes", "revise"], "description": "Gesamturteil." },
+    "summary": { "type": "string" },
+    "scores": {
+      "type": "object",
+      "description": "Bewertung 1–10 je Dimension.",
+      "properties": {
+        "hookStrength": { "type": "number", "minimum": 0, "maximum": 10 },
+        "storyStructure": { "type": "number", "minimum": 0, "maximum": 10 },
+        "pacing": { "type": "number", "minimum": 0, "maximum": 10 },
+        "visualConsistency": { "type": "number", "minimum": 0, "maximum": 10 },
+        "cinematography": { "type": "number", "minimum": 0, "maximum": 10 },
+        "audioVoice": { "type": "number", "minimum": 0, "maximum": 10 },
+        "editing": { "type": "number", "minimum": 0, "maximum": 10 },
+        "platformFit": { "type": "number", "minimum": 0, "maximum": 10 },
+        "originality": { "type": "number", "minimum": 0, "maximum": 10 },
+        "overall": { "type": "number", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Konkrete Findings mit Verbesserungsvorschlag.",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "area", "finding", "suggestion"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "enum": ["blocker", "major", "minor", "nitpick"] },
+          "area": { "enum": ["story", "director", "cinematography", "visual", "voice_audio", "editor", "platform", "consistency"] },
+          "ref": { "type": "string", "description": "Betroffene ID (sceneId/shotId/...)." },
+          "finding": { "type": "string" },
+          "suggestion": { "type": "string" },
+          "status": { "enum": ["open", "accepted", "dismissed"], "default": "open" }
+        }
+      }
+    },
+    "strengths": { "type": "array", "items": { "type": "string" } },
+    "platformNotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "platform": { "enum": ["youtube", "shorts", "tiktok", "instagram_reels", "instagram_feed"] },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}
