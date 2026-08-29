@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/visuals.schema.json",
+  "title": "Visual",
+  "description": "Generierungs-Prompt-Paket für EINEN Shot. Output des Visual Agents. Referenziert shotId. Provider-agnostisch: enthält generische Felder plus optionale providerspezifische Overrides, damit später beliebige Bild-/Video-Generatoren angebunden werden können.",
+  "type": "object",
+  "required": ["visualId", "shotId", "sceneId", "kind", "prompt"],
+  "additionalProperties": false,
+  "properties": {
+    "visualId": { "type": "string" },
+    "shotId": { "type": "string", "description": "Verweis auf shots[].shotId." },
+    "sceneId": { "type": "string", "description": "Verweis auf scenes[].sceneId." },
+    "kind": { "enum": ["image", "video", "image_to_video"], "description": "Zu generierender Asset-Typ." },
+    "prompt": {
+      "type": "object",
+      "required": ["positive"],
+      "properties": {
+        "positive": { "type": "string", "description": "Vollständiger Bild-/Video-Prompt inkl. Konsistenz-Bausteinen." },
+        "negative": { "type": "string", "description": "Was vermieden werden soll." },
+        "styleTokens": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "consistencyRefs": {
+      "type": "object",
+      "description": "Verknüpfung zur Konsistenzbibliothek. Sichert gleiche Charaktere/Locations/Stil.",
+      "properties": {
+        "characterIds": { "type": "array", "items": { "type": "string" } },
+        "locationId": { "type": "string" },
+        "seed": { "type": "integer", "description": "Fester Seed für reproduzierbare Konsistenz." },
+        "referenceImageRefs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "params": {
+      "type": "object",
+      "description": "Generische Generierungsparameter (auf Provider gemappt).",
+      "properties": {
+        "aspectRatio": { "enum": ["16:9", "9:16", "1:1", "4:5"] },
+        "resolution": { "type": "string" },
+        "durationSec": { "type": "number", "description": "Nur bei kind=video/image_to_video." },
+        "fps": { "type": "number" },
+        "motionStrength": { "type": "number" },
+        "cameraMotionHint": { "type": "string", "description": "Vom Shot abgeleitete Kamerabewegung." }
+      }
+    },
+    "providerOverrides": {
+      "type": "object",
+      "description": "Optionale providerspezifische Felder (z. B. für ein bestimmtes Bild-/Video-Modell). Frei, damit erweiterbar.",
+      "additionalProperties": true
+    },
+    "output": {
+      "type": "object",
+      "description": "Wird nach der Generierung befüllt (später, wenn Generator angebunden).",
+      "properties": {
+        "status": { "enum": ["pending", "queued", "generating", "done", "failed"], "default": "pending" },
+        "assetUrl": { "type": "string" },
+        "assetPath": { "type": "string" },
+        "provider": { "type": "string" },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

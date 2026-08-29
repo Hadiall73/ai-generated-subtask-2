@@ -1,0 +1,77 @@
+{
+  "_comment": "Verknüpft jeden Agenten mit einem LLM-Provider aus providers.json (llm.providers.*). So kannst du jedem Agenten SPÄTER ein eigenes, verstärktes Modell/API geben. 'systemPromptFile' zeigt auf den austauschbaren Prompt. 'requiresApproval' steuert das Human-in-the-loop-Gate danach.",
+  "version": "1.0.0",
+
+  "agents": {
+    "story": {
+      "order": 1,
+      "stage": "story",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/1_story_agent.md",
+      "outputSchema": "schemas/script.schema.json",
+      "outputKey": "script",
+      "requiresApproval": true,
+      "options": { "temperature": 0.8 }
+    },
+    "director": {
+      "order": 2,
+      "stage": "director",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/2_director_agent.md",
+      "outputSchema": "schemas/scenes.schema.json",
+      "outputKey": "scenes",
+      "requiresApproval": true,
+      "options": { "temperature": 0.6 }
+    },
+    "cinematography": {
+      "order": 3,
+      "stage": "cinematography",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/3_cinematography_agent.md",
+      "outputSchema": "schemas/shots.schema.json",
+      "outputKey": "shots",
+      "requiresApproval": true,
+      "options": { "temperature": 0.6 }
+    },
+    "visual": {
+      "order": 4,
+      "stage": "visual",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/4_visual_agent.md",
+      "outputSchema": "schemas/visuals.schema.json",
+      "outputKey": "visuals",
+      "requiresApproval": true,
+      "options": { "temperature": 0.5 }
+    },
+    "voice_audio": {
+      "order": 5,
+      "stage": "voice_audio",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/5_voice_audio_agent.md",
+      "outputSchema": "schemas/voice.schema.json",
+      "outputKey": "voice_audio",
+      "requiresApproval": true,
+      "options": { "temperature": 0.6 }
+    },
+    "editor": {
+      "order": 6,
+      "stage": "editor",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/6_editor_agent.md",
+      "outputSchema": "schemas/editing.schema.json",
+      "outputKey": "editing",
+      "requiresApproval": true,
+      "options": { "temperature": 0.4 }
+    },
+    "critic": {
+      "order": 7,
+      "stage": "critic",
+      "provider": "openai_compatible",
+      "systemPromptFile": "agents/7_critic_agent.md",
+      "outputSchema": "schemas/critique.schema.json",
+      "outputKey": "critique",
+      "requiresApproval": true,
+      "options": { "temperature": 0.3 }
+    }
+  }
+}

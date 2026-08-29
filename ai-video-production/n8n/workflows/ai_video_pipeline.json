@@ -1,0 +1,1466 @@
+{
+  "name": "AI Video Production Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Video Production — Creative Brief",
+        "formDescription": "Du bist der Creative Director. Liefere Thema, Inhalt und Story-Grundidee. Das System verändert deinen Inhalt nicht eigenmächtig, sondern macht Vorschläge, die du danach freigibst.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Titel",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Thema (topic)",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Inhalt / Rohskript (content)",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Story-Grundidee (storyIdea)",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Ziel (goal)",
+              "fieldType": "text"
+            },
+            {
+              "fieldLabel": "Zielgruppe (audience)",
+              "fieldType": "text"
+            },
+            {
+              "fieldLabel": "Nicht verändern (mustKeep, kommagetrennt)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Plattformen",
+              "fieldType": "dropdown",
+              "multiselect": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "youtube"
+                  },
+                  {
+                    "option": "shorts"
+                  },
+                  {
+                    "option": "tiktok"
+                  },
+                  {
+                    "option": "instagram_reels"
+                  },
+                  {
+                    "option": "instagram_feed"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Zielgesamtlänge in Sek. (targetDurationSec)",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Sprache (language)",
+              "fieldType": "text"
+            }
+          ]
+        }
+      },
+      "id": "node_001",
+      "name": "🎬 Brief (Creative Director)",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🎬 Start hier\nCreative-Director-Brief. Deine Eingaben (Thema, Inhalt, Story) sind für alle Agenten **unveränderlich** und werden nur referenziert.",
+        "height": 200,
+        "width": 300,
+        "color": 4
+      },
+      "id": "node_002",
+      "name": "Note node_003",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut das Wurzel-Projektobjekt aus dem Brief (project.schema.json).\nconst f = $json;\nconst csv = (s) => (s ? String(s).split(',').map(x => x.trim()).filter(Boolean) : []);\nconst project = {\n  projectId: 'proj-' + Date.now(),\n  schemaVersion: '1.0.0',\n  meta: {\n    title: f['Titel'] || 'Untitled',\n    createdAt: new Date().toISOString(),\n    updatedAt: new Date().toISOString(),\n    creativeDirector: 'me',\n    platforms: [].concat(f['Plattformen'] || ['youtube']),\n    language: f['Sprache (language)'] || 'de',\n    targetDurationSec: Number(f['Zielgesamtlänge in Sek. (targetDurationSec)'] || 60),\n  },\n  creativeBrief: {\n    topic: f['Thema (topic)'] || '',\n    content: f['Inhalt / Rohskript (content)'] || '',\n    storyIdea: f['Story-Grundidee (storyIdea)'] || '',\n    goal: f['Ziel (goal)'] || '',\n    audience: f['Zielgruppe (audience)'] || '',\n    mustKeep: csv(f['Nicht verändern (mustKeep, kommagetrennt)']),\n  },\n  consistency: { characters: [], locations: [], styleGuide: {} },\n  pipeline: { currentStage: 'brief', stages: [] },\n};\nreturn [{ json: { project } }];"
+      },
+      "id": "node_004",
+      "name": "Init: Projekt-JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den story-Agenten.\n// System-Prompt-Datei: agents/1_story_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/1_story_agent.md\";\nconst outputKey = \"script\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"story\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.8} },\n} }];"
+      },
+      "id": "node_005",
+      "name": "Prepare · story",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_006",
+      "name": "LLM · story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        960,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"script\";\nconst stage = \"story\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"story\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_007",
+      "name": "Assemble · story",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: story",
+        "formDescription": "Prüfe den Vorschlag des story-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_008",
+      "name": "✅ Review · story",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 1: story\n**Prompt:** agents/1_story_agent.md\n**Output:** `script`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_009",
+      "name": "Note node_010",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        650,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · story').first().json;\nconst project = prevNode.project;\nconst stage = \"story\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"script\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_011",
+      "name": "Apply Review · story",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den director-Agenten.\n// System-Prompt-Datei: agents/2_director_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/2_director_agent.md\";\nconst outputKey = \"scenes\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"director\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.6} },\n} }];"
+      },
+      "id": "node_012",
+      "name": "Prepare · director",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_013",
+      "name": "LLM · director",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2560,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"scenes\";\nconst stage = \"director\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"director\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_014",
+      "name": "Assemble · director",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: director",
+        "formDescription": "Prüfe den Vorschlag des director-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_015",
+      "name": "✅ Review · director",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 2: director\n**Prompt:** agents/2_director_agent.md\n**Output:** `scenes`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_016",
+      "name": "Note node_017",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2250,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · director').first().json;\nconst project = prevNode.project;\nconst stage = \"director\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"scenes\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_018",
+      "name": "Apply Review · director",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den cinematography-Agenten.\n// System-Prompt-Datei: agents/3_cinematography_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/3_cinematography_agent.md\";\nconst outputKey = \"shots\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"cinematography\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.6} },\n} }];"
+      },
+      "id": "node_019",
+      "name": "Prepare · cinematography",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_020",
+      "name": "LLM · cinematography",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        4160,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"shots\";\nconst stage = \"cinematography\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"cinematography\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_021",
+      "name": "Assemble · cinematography",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: cinematography",
+        "formDescription": "Prüfe den Vorschlag des cinematography-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_022",
+      "name": "✅ Review · cinematography",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 3: cinematography\n**Prompt:** agents/3_cinematography_agent.md\n**Output:** `shots`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_023",
+      "name": "Note node_024",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3850,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · cinematography').first().json;\nconst project = prevNode.project;\nconst stage = \"cinematography\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"shots\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_025",
+      "name": "Apply Review · cinematography",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den visual-Agenten.\n// System-Prompt-Datei: agents/4_visual_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/4_visual_agent.md\";\nconst outputKey = \"visuals\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"visual\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.5} },\n} }];"
+      },
+      "id": "node_026",
+      "name": "Prepare · visual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_027",
+      "name": "LLM · visual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        5760,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"visuals\";\nconst stage = \"visual\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"visual\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_028",
+      "name": "Assemble · visual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: visual",
+        "formDescription": "Prüfe den Vorschlag des visual-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_029",
+      "name": "✅ Review · visual",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        6400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 4: visual\n**Prompt:** agents/4_visual_agent.md\n**Output:** `visuals`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_030",
+      "name": "Note node_031",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5450,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · visual').first().json;\nconst project = prevNode.project;\nconst stage = \"visual\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"visuals\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_032",
+      "name": "Apply Review · visual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den voice_audio-Agenten.\n// System-Prompt-Datei: agents/5_voice_audio_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/5_voice_audio_agent.md\";\nconst outputKey = \"voice_audio\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"voice_audio\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.6} },\n} }];"
+      },
+      "id": "node_033",
+      "name": "Prepare · voice audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_034",
+      "name": "LLM · voice audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        7360,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"voice_audio\";\nconst stage = \"voice_audio\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"voice_audio\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_035",
+      "name": "Assemble · voice audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: voice audio",
+        "formDescription": "Prüfe den Vorschlag des voice audio-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_036",
+      "name": "✅ Review · voice audio",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        8000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 5: voice audio\n**Prompt:** agents/5_voice_audio_agent.md\n**Output:** `voice_audio`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_037",
+      "name": "Note node_038",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7050,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · voice audio').first().json;\nconst project = prevNode.project;\nconst stage = \"voice_audio\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"voice_audio\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_039",
+      "name": "Apply Review · voice audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den editor-Agenten.\n// System-Prompt-Datei: agents/6_editor_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/6_editor_agent.md\";\nconst outputKey = \"editing\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"editor\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.4} },\n} }];"
+      },
+      "id": "node_040",
+      "name": "Prepare · editor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_041",
+      "name": "LLM · editor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        8960,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"editing\";\nconst stage = \"editor\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"editor\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_042",
+      "name": "Assemble · editor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: editor",
+        "formDescription": "Prüfe den Vorschlag des editor-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_043",
+      "name": "✅ Review · editor",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        9600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 6: editor\n**Prompt:** agents/6_editor_agent.md\n**Output:** `editing`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_044",
+      "name": "Note node_045",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        8650,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · editor').first().json;\nconst project = prevNode.project;\nconst stage = \"editor\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"editing\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_046",
+      "name": "Apply Review · editor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut die LLM-Anfrage für den critic-Agenten.\n// System-Prompt-Datei: agents/7_critic_agent.md\n// Provider (aus providers.json -> llm.providers): \"openai_compatible\"\nconst project = $json.project;\nconst systemPromptRef = \"agents/7_critic_agent.md\";\nconst outputKey = \"critique\";\n\n// Der eigentliche System-Prompt-Text wird beim Anbinden der API geladen\n// (Datei einlesen ODER hier direkt hineinkopieren).\nconst messages = [\n  { role: 'system', content: 'SYSTEM_PROMPT_HIER_EINSETZEN (' + systemPromptRef + ')' },\n  { role: 'user', content: JSON.stringify(project) },\n];\n\nreturn [{ json: {\n  project,\n  _agent: \"critic\",\n  _outputKey: outputKey,\n  _provider: \"openai_compatible\",\n  llmRequest: { messages, options: {\"temperature\":0.3} },\n} }];"
+      },
+      "id": "node_047",
+      "name": "Prepare · critic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LLM_ENDPOINT || \"https://PLATZHALTER/v1/chat/completions\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LLM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.LLM_MODEL, messages: $json.llmRequest.messages }) }}",
+        "options": {}
+      },
+      "id": "node_048",
+      "name": "LLM · critic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        10560,
+        300
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt LLM-Antwort (falls vorhanden) ODER erzeugt Platzhalter.\nconst inItems = $input.all();\nconst base = inItems[0].json;\nconst project = base.project;\nconst outputKey = \"critique\";\nconst stage = \"critic\";\n\nlet agentOutput = null;\n// Echte LLM-Antwort (OpenAI-kompatibel) parsen, wenn der HTTP-Node lief:\ntry {\n  const raw = base.choices?.[0]?.message?.content ?? base.content ?? null;\n  if (raw) agentOutput = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { /* fällt auf Platzhalter zurück */ }\n\nif (!agentOutput) {\n  agentOutput = { _placeholder: true, _note: 'API noch nicht angebunden — Platzhalter für ' + outputKey };\n}\n\n// In das Projektobjekt einhängen (voice_audio liefert zwei Arrays):\nif (outputKey === 'voice_audio') {\n  project.voice = agentOutput.voice || project.voice || [];\n  project.audio = agentOutput.audio || project.audio || [];\n} else if (outputKey === 'visuals') {\n  project.visuals = agentOutput.visuals || (Array.isArray(agentOutput) ? agentOutput : []);\n  if (agentOutput.consistency) project.consistency = agentOutput.consistency;\n} else {\n  project[outputKey] = agentOutput;\n}\n\nproject.meta.updatedAt = new Date().toISOString();\nproject.pipeline.currentStage = stage;\nproject.pipeline.stages.push({ stage, status: 'generated', agent: \"critic\", generatedAt: new Date().toISOString(), revision: 0 });\n\nreturn [{ json: { project, _review: { stage, outputKey } } }];"
+      },
+      "id": "node_049",
+      "name": "Assemble · critic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "page",
+        "formTitle": "Freigabe: critic",
+        "formDescription": "Prüfe den Vorschlag des critic-Agenten. Du kannst Änderungswünsche notieren und dann freigeben. Erst nach 'approve' läuft der nächste Schritt.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Entscheidung",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "request_changes"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Änderungswünsche / Notizen (directorNotes)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Bearbeitetes JSON (optional, überschreibt Vorschlag)",
+              "fieldType": "textarea"
+            }
+          ]
+        }
+      },
+      "id": "node_050",
+      "name": "✅ Review · critic",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        11200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schritt 7: critic\n**Prompt:** agents/7_critic_agent.md\n**Output:** `critique`\n\nLLM-Node ist **disabled** bis API steht.\nReview-Form = deine Freigabe.",
+        "height": 150,
+        "width": 920,
+        "color": 6
+      },
+      "id": "node_051",
+      "name": "Note node_052",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10250,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Übernimmt deine Freigabe-Entscheidung in das Projekt.\nconst form = $json;\nconst prevNode = $('Assemble · critic').first().json;\nconst project = prevNode.project;\nconst stage = \"critic\";\n\nconst decision = form['Entscheidung'] || 'approve';\nconst notes = form['Änderungswünsche / Notizen (directorNotes)'] || '';\nconst editedJson = form['Bearbeitetes JSON (optional, überschreibt Vorschlag)'];\n\nif (editedJson) {\n  try {\n    const edited = JSON.parse(editedJson);\n    const outputKey = \"critique\";\n    if (outputKey === 'voice_audio') { project.voice = edited.voice ?? project.voice; project.audio = edited.audio ?? project.audio; }\n    else if (outputKey === 'visuals') { project.visuals = edited.visuals ?? edited; if (edited.consistency) project.consistency = edited.consistency; }\n    else { project[outputKey] = edited; }\n  } catch (e) { /* ungültiges JSON ignorieren */ }\n}\n\nconst st = project.pipeline.stages.find(s => s.stage === stage && s.status !== 'approved');\nif (st) {\n  st.status = decision === 'approve' ? 'approved' : 'changes_requested';\n  st.directorNotes = notes;\n  if (decision === 'approve') { st.approvedAt = new Date().toISOString(); st.approvedBy = 'creative_director'; }\n}\nproject.meta.updatedAt = new Date().toISOString();\nreturn [{ json: { project } }];"
+      },
+      "id": "node_053",
+      "name": "Apply Review · critic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const project = $json.project;\nproject.pipeline.currentStage = 'approved_for_render';\nproject.meta.updatedAt = new Date().toISOString();\n// Ab hier (SPÄTER): Bild-/Video-Generatoren -> TTS -> Musik/SFX -> FFmpeg-Render -> Social-Publish.\nreturn [{ json: { project } }];"
+      },
+      "id": "node_054",
+      "name": "🏁 Approved for Render",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🏁 Freigegeben\nProjekt-JSON ist vollständig & geprüft.\n\n**Nächste Stufen (später):**\n1. Visuals generieren (Image/Video-API)\n2. Voiceover (TTS-API)\n3. Musik/SFX\n4. FFmpeg-Render\n5. Social-Publish",
+        "height": 230,
+        "width": 320,
+        "color": 5
+      },
+      "id": "node_055",
+      "name": "Note node_056",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        11820,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "🎬 Brief (Creative Director)": {
+      "main": [
+        [
+          {
+            "node": "Init: Projekt-JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init: Projekt-JSON": {
+      "main": [
+        [
+          {
+            "node": "Prepare · story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · story": {
+      "main": [
+        [
+          {
+            "node": "LLM · story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · story": {
+      "main": [
+        [
+          {
+            "node": "Assemble · story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · story": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · story": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · story": {
+      "main": [
+        [
+          {
+            "node": "Prepare · director",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · director": {
+      "main": [
+        [
+          {
+            "node": "LLM · director",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · director": {
+      "main": [
+        [
+          {
+            "node": "Assemble · director",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · director": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · director",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · director": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · director",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · director": {
+      "main": [
+        [
+          {
+            "node": "Prepare · cinematography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · cinematography": {
+      "main": [
+        [
+          {
+            "node": "LLM · cinematography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · cinematography": {
+      "main": [
+        [
+          {
+            "node": "Assemble · cinematography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · cinematography": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · cinematography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · cinematography": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · cinematography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · cinematography": {
+      "main": [
+        [
+          {
+            "node": "Prepare · visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · visual": {
+      "main": [
+        [
+          {
+            "node": "LLM · visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · visual": {
+      "main": [
+        [
+          {
+            "node": "Assemble · visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · visual": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · visual": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · visual": {
+      "main": [
+        [
+          {
+            "node": "Prepare · voice audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · voice audio": {
+      "main": [
+        [
+          {
+            "node": "LLM · voice audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · voice audio": {
+      "main": [
+        [
+          {
+            "node": "Assemble · voice audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · voice audio": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · voice audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · voice audio": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · voice audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · voice audio": {
+      "main": [
+        [
+          {
+            "node": "Prepare · editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · editor": {
+      "main": [
+        [
+          {
+            "node": "LLM · editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · editor": {
+      "main": [
+        [
+          {
+            "node": "Assemble · editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · editor": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · editor": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · editor": {
+      "main": [
+        [
+          {
+            "node": "Prepare · critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare · critic": {
+      "main": [
+        [
+          {
+            "node": "LLM · critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · critic": {
+      "main": [
+        [
+          {
+            "node": "Assemble · critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble · critic": {
+      "main": [
+        [
+          {
+            "node": "✅ Review · critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Review · critic": {
+      "main": [
+        [
+          {
+            "node": "Apply Review · critic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Review · critic": {
+      "main": [
+        [
+          {
+            "node": "🏁 Approved for Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "generatedBy": "generate-workflow.js",
+    "schemaVersion": "1.0.0"
+  }
+}

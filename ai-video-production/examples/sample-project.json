@@ -1,0 +1,118 @@
+{
+  "projectId": "proj-demo-001",
+  "schemaVersion": "1.0.0",
+  "meta": {
+    "title": "Warum 5 Uhr morgens dein Leben verändert",
+    "createdAt": "2026-08-29T08:00:00Z",
+    "updatedAt": "2026-08-29T08:45:00Z",
+    "creativeDirector": "me",
+    "platforms": ["shorts", "tiktok", "instagram_reels"],
+    "language": "de",
+    "targetDurationSec": 45,
+    "aspectRatios": ["9:16"],
+    "tone": "inspirierend, ruhig-kraftvoll"
+  },
+  "creativeBrief": {
+    "topic": "Frühes Aufstehen als Produktivitäts-Hebel",
+    "content": "Wer um 5 Uhr aufsteht, gewinnt 2 ruhige Stunden vor allen anderen. Diese Zeit ist Gold für Fokus, Sport und Planung.",
+    "storyIdea": "Persönliche Transformation: vom hektischen Morgen zum kontrollierten Start.",
+    "goal": "Reichweite + Inspiration, Zuschauer sollen es 3 Tage testen.",
+    "audience": "Junge Berufstätige, 20–35, die sich überfordert fühlen.",
+    "mustKeep": ["5 Uhr", "3 Tage testen"],
+    "constraints": ["max 45 Sek", "9:16"]
+  },
+  "script": {
+    "logline": "Zwei stille Stunden vor Sonnenaufgang verwandeln Chaos in Kontrolle.",
+    "hook": { "text": "Was, wenn dein ganzer Tag um 5 Uhr entschieden wird?", "type": "question", "rationale": "Direkte Frage öffnet die Curiosity Gap." },
+    "structure": {
+      "model": "Hook-Story-Payoff",
+      "beats": [
+        { "id": "b1", "label": "Hook", "text": "Was, wenn dein ganzer Tag um 5 Uhr entschieden wird?", "purpose": "Aufmerksamkeit", "approxDurationSec": 3 },
+        { "id": "b2", "label": "Problem", "text": "Hektischer Start, den Tag hinterherlaufen.", "purpose": "Identifikation", "approxDurationSec": 12 },
+        { "id": "b3", "label": "Wende", "text": "5 Uhr: zwei stille Stunden nur für dich.", "purpose": "Lösung", "approxDurationSec": 20 },
+        { "id": "b4", "label": "Payoff/CTA", "text": "Teste es 3 Tage.", "purpose": "Handlung", "approxDurationSec": 10 }
+      ]
+    },
+    "enhancedScript": "Was, wenn dein ganzer Tag um 5 Uhr entschieden wird? ...",
+    "suggestions": [
+      { "id": "s1", "type": "hook", "target": "b1", "original": "Frühes Aufstehen ist gut.", "suggestion": "Was, wenn dein ganzer Tag um 5 Uhr entschieden wird?", "rationale": "Frage statt Aussage erhöht Verweildauer.", "status": "proposed" }
+    ]
+  },
+  "scenes": [
+    { "sceneId": "sc-01", "index": 0, "title": "Hook", "summary": "Nahaufnahme Wecker 04:59 → 05:00.", "scriptRef": "b1", "atmosphere": { "mood": "still", "emotion": "Neugier", "energy": "medium", "keywords": ["dunkel", "blaue Stunde"] }, "timing": { "startSec": 0, "durationSec": 3, "pacing": "medium" }, "locationRef": "loc-bedroom", "characterRefs": ["char-hero"], "transitionOut": { "type": "match_cut", "durationSec": 0.3 } },
+    { "sceneId": "sc-02", "index": 1, "title": "Problem", "summary": "Hektischer Morgen im Kontrast.", "scriptRef": "b2", "atmosphere": { "mood": "hektisch", "emotion": "Stress", "energy": "high", "keywords": ["Unschärfe", "Uhr tickt"] }, "timing": { "startSec": 3, "durationSec": 12, "pacing": "fast" }, "locationRef": "loc-kitchen", "characterRefs": ["char-hero"], "transitionIn": { "type": "match_cut", "durationSec": 0.3 }, "transitionOut": { "type": "dissolve", "durationSec": 0.5 } },
+    { "sceneId": "sc-03", "index": 2, "title": "Wende", "summary": "Ruhiger Fokus-Morgen: Kaffee, Sport, Planung.", "scriptRef": "b3", "atmosphere": { "mood": "fokussiert", "emotion": "Ruhe", "energy": "medium", "keywords": ["warmes Licht", "Sonnenaufgang"] }, "timing": { "startSec": 15, "durationSec": 20, "pacing": "medium" }, "locationRef": "loc-livingroom", "characterRefs": ["char-hero"], "transitionOut": { "type": "fade", "durationSec": 0.5 } },
+    { "sceneId": "sc-04", "index": 3, "title": "CTA", "summary": "Blick in die Kamera: 3 Tage testen.", "scriptRef": "b4", "atmosphere": { "mood": "entschlossen", "emotion": "Motivation", "energy": "high", "keywords": ["direkt", "klar"] }, "timing": { "startSec": 35, "durationSec": 10, "pacing": "medium" }, "locationRef": "loc-livingroom", "characterRefs": ["char-hero"] }
+  ],
+  "shots": [
+    { "shotId": "sc-01-sh-01", "sceneId": "sc-01", "index": 0, "description": "Extreme Close-up Wecker springt auf 05:00.", "shotType": "extreme_close_up", "angle": "eye_level", "lens": { "focalLengthMm": 85, "aperture": "f/2.0", "depthOfField": "shallow" }, "cameraMovement": { "type": "push_in", "speed": "slow" }, "composition": { "rule": "centered", "framing": "Zifferblatt füllt Bild" }, "lighting": { "setup": "low-key", "mood": "blaue Stunde", "timeOfDay": "vor Sonnenaufgang", "colorTemperature": "kühl" }, "durationSec": 3, "characterRefs": [] },
+    { "shotId": "sc-03-sh-01", "sceneId": "sc-03", "index": 0, "description": "Medium: Hero gießt Kaffee, warmes Licht.", "shotType": "medium", "angle": "eye_level", "lens": { "focalLengthMm": 35, "aperture": "f/2.8", "depthOfField": "medium" }, "cameraMovement": { "type": "static" }, "composition": { "rule": "rule_of_thirds", "framing": "Hero links, Fenster rechts" }, "lighting": { "setup": "natural", "mood": "warm", "timeOfDay": "Sonnenaufgang", "colorTemperature": "warm" }, "durationSec": 6, "characterRefs": ["char-hero"] }
+  ],
+  "visuals": [
+    { "visualId": "vis-001", "shotId": "sc-01-sh-01", "sceneId": "sc-01", "kind": "video", "prompt": { "positive": "Extreme close-up of a vintage alarm clock flipping to 05:00, blue hour light, cinematic, shallow depth of field, slow push-in", "negative": "text, watermark, distorted numbers", "styleTokens": ["cinematic", "moody"] }, "consistencyRefs": { "locationId": "loc-bedroom", "seed": 12345 }, "params": { "aspectRatio": "9:16", "durationSec": 3, "fps": 30, "cameraMotionHint": "slow push in" }, "output": { "status": "pending" } },
+    { "visualId": "vis-002", "shotId": "sc-03-sh-01", "sceneId": "sc-03", "kind": "image_to_video", "prompt": { "positive": "Young professional pouring coffee by a window at sunrise, warm light, calm, medium shot, 35mm look", "negative": "clutter, harsh shadows", "styleTokens": ["warm", "calm"] }, "consistencyRefs": { "characterIds": ["char-hero"], "locationId": "loc-livingroom", "seed": 12345 }, "params": { "aspectRatio": "9:16", "durationSec": 6, "fps": 30, "cameraMotionHint": "static" }, "output": { "status": "pending" } }
+  ],
+  "voice": [
+    { "voiceId": "vo-01", "sceneId": "sc-01", "shotRef": "sc-01-sh-01", "text": "Was, wenn dein ganzer Tag um 5 Uhr entschieden wird?", "speaker": { "role": "narrator", "voiceProfile": "narrator", "gender": "neutral" }, "prosody": { "emotion": "neugierig-ruhig", "intensity": "medium", "pace": "slow", "wordsPerMinute": 120, "emphasis": ["5 Uhr"], "pauses": [ { "afterText": "entschieden wird?", "durationMs": 500, "reason": "Spannung halten" } ] }, "output": { "status": "pending" } },
+    { "voiceId": "vo-03", "sceneId": "sc-03", "text": "Fünf Uhr. Zwei stille Stunden, die nur dir gehören.", "speaker": { "role": "narrator", "voiceProfile": "narrator" }, "prosody": { "emotion": "warm-fokussiert", "intensity": "medium", "pace": "medium", "wordsPerMinute": 135, "emphasis": ["nur dir"] }, "output": { "status": "pending" } }
+  ],
+  "audio": [
+    { "audioId": "au-music-01", "sceneId": "sc-01", "type": "music", "description": "Ruhiger, aufbauender Cinematic-Score.", "mood": "hoffnungsvoll", "genre": "cinematic ambient", "bpm": 80, "timing": { "startSec": 0, "durationSec": 45 }, "mix": { "levelDb": -18, "ducking": true, "fadeInMs": 800, "fadeOutMs": 1200 }, "prompt": "soft cinematic ambient build, hopeful, subtle piano and strings", "output": { "status": "pending" } },
+    { "audioId": "au-sfx-01", "sceneId": "sc-01", "shotRef": "sc-01-sh-01", "type": "sfx", "description": "Weckerklingeln, dann Stille.", "timing": { "startSec": 2.7, "durationSec": 0.6 }, "mix": { "levelDb": -6 }, "output": { "status": "pending" } }
+  ],
+  "editing": {
+    "targetDurationSec": 45,
+    "framerate": 30,
+    "timeline": [
+      { "clipId": "c1", "sceneId": "sc-01", "shotId": "sc-01-sh-01", "visualRef": "vis-001", "voiceRefs": ["vo-01"], "audioRefs": ["au-music-01", "au-sfx-01"], "startSec": 0, "durationSec": 3, "speed": 1, "transitionIn": { "type": "cut" } },
+      { "clipId": "c3", "sceneId": "sc-03", "shotId": "sc-03-sh-01", "visualRef": "vis-002", "voiceRefs": ["vo-03"], "audioRefs": ["au-music-01"], "startSec": 15, "durationSec": 6, "speed": 1, "transitionIn": { "type": "dissolve", "durationSec": 0.5 } }
+    ],
+    "subtitles": {
+      "enabled": true,
+      "style": { "font": "Inter Bold", "size": "large", "color": "#FFFFFF", "highlight": "#FFD400", "position": "center", "animation": "word_pop" },
+      "cues": [
+        { "startSec": 0, "endSec": 3, "text": "Was, wenn dein Tag um 5 Uhr entschieden wird?", "voiceRef": "vo-01" },
+        { "startSec": 15, "endSec": 21, "text": "Zwei stille Stunden, die nur dir gehören.", "voiceRef": "vo-03" }
+      ]
+    },
+    "sync": [ { "atSec": 3, "description": "Match-Cut auf 05:00 fällt mit Musik-Beat zusammen", "locks": ["vis-001", "au-music-01"] } ],
+    "platformVariants": [
+      { "platform": "shorts", "aspectRatio": "9:16", "maxDurationSec": 60 },
+      { "platform": "tiktok", "aspectRatio": "9:16", "maxDurationSec": 60 },
+      { "platform": "instagram_reels", "aspectRatio": "9:16", "maxDurationSec": 90 }
+    ],
+    "editorNotes": "Schneller Schnitt in sc-02, ruhiger in sc-03; Captions immer zentriert."
+  },
+  "critique": {
+    "verdict": "ready_with_notes",
+    "summary": "Starker Hook und klare Struktur; sc-02 braucht mehr visuelle Abwechslung.",
+    "scores": { "hookStrength": 9, "storyStructure": 8, "pacing": 7, "visualConsistency": 8, "cinematography": 8, "audioVoice": 8, "editing": 7, "platformFit": 9, "originality": 7, "overall": 8 },
+    "issues": [
+      { "id": "i1", "severity": "minor", "area": "editor", "ref": "sc-02", "finding": "Nur ein Shot – wirkt statisch.", "suggestion": "2–3 schnelle Inserts (Uhr, Kaffee verschüttet, Türklinke) ergänzen.", "status": "open" },
+      { "id": "i2", "severity": "nitpick", "area": "voice_audio", "ref": "vo-03", "finding": "Tempo evtl. leicht zu schnell für 'ruhig'.", "suggestion": "WPM auf 125 senken.", "status": "open" }
+    ],
+    "strengths": ["Klarer Hook", "Gute 9:16-Eignung", "Konsistente Hauptfigur"],
+    "platformNotes": [ { "platform": "tiktok", "note": "Text-Overlay in erster Sekunde für Autoplay-Stummschaltung." } ]
+  },
+  "consistency": {
+    "characters": [ { "id": "char-hero", "name": "Hero", "description": "Frau, ~28, dunkle Haare zum Dutt, schlichtes graues Sweatshirt.", "referencePrompt": "a 28-year-old woman with dark hair in a bun, plain grey sweatshirt, natural look", "referenceImageRefs": [] } ],
+    "locations": [
+      { "id": "loc-bedroom", "name": "Schlafzimmer", "description": "Minimalistisch, dunkel, ein Fenster mit blauem Morgenlicht.", "referencePrompt": "minimalist dark bedroom, one window with blue morning light" },
+      { "id": "loc-kitchen", "name": "Küche", "description": "Kleine moderne Küche, morgendliche Hektik.", "referencePrompt": "small modern kitchen, morning" },
+      { "id": "loc-livingroom", "name": "Wohnzimmer", "description": "Gemütlich, großes Fenster, warmes Sonnenaufgangslicht.", "referencePrompt": "cozy living room, big window, warm sunrise light" }
+    ],
+    "styleGuide": { "visualStyle": "cinematic, ruhig, filmisch", "colorPalette": ["#1B2A4A", "#E8B04B", "#F5F0E6"], "lighting": "natürlich, weich", "grade": "warmer Teal-Orange-Look", "negativePrompt": "text, watermark, oversaturated, plastic skin" }
+  },
+  "pipeline": {
+    "currentStage": "critic",
+    "stages": [
+      { "stage": "story", "status": "approved", "agent": "story", "approvedBy": "creative_director", "revision": 1 },
+      { "stage": "director", "status": "approved", "agent": "director", "revision": 0 },
+      { "stage": "cinematography", "status": "approved", "agent": "cinematography", "revision": 0 },
+      { "stage": "visual", "status": "approved", "agent": "visual", "revision": 0 },
+      { "stage": "voice_audio", "status": "approved", "agent": "voice_audio", "revision": 0 },
+      { "stage": "editor", "status": "approved", "agent": "editor", "revision": 0 },
+      { "stage": "critic", "status": "generated", "agent": "critic", "revision": 0 }
+    ]
+  }
+}

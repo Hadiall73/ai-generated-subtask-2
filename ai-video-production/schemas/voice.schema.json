@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/voice.schema.json",
+  "title": "VoiceLine",
+  "description": "Voiceover-Plan für EINE Szene (oder Segment). Output des Voice & Audio Agents. Referenziert sceneId. Provider-agnostisch: enthält generische Prosodie-Felder + optionale TTS-Provider-Overrides, damit später beliebige TTS-Anbieter angebunden werden können ('Voice API-ready').",
+  "type": "object",
+  "required": ["voiceId", "sceneId", "text"],
+  "additionalProperties": false,
+  "properties": {
+    "voiceId": { "type": "string" },
+    "sceneId": { "type": "string", "description": "Verweis auf scenes[].sceneId." },
+    "shotRef": { "type": "string", "description": "Optional: an welchem Shot der Text startet (für Sync)." },
+    "text": { "type": "string", "description": "Zu sprechender Text (aus dem freigegebenen Skript)." },
+    "speaker": {
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "description": "z. B. narrator, character:hero." },
+        "voiceProfile": { "type": "string", "description": "Logischer Name des Stimm-Profils (auf TTS-Anbieter gemappt)." },
+        "gender": { "type": "string" },
+        "age": { "type": "string" }
+      }
+    },
+    "prosody": {
+      "type": "object",
+      "description": "Emotion, Tempo und Pausen – provider-neutral.",
+      "properties": {
+        "emotion": { "type": "string", "description": "z. B. inspirierend, spannungsvoll, ruhig." },
+        "intensity": { "enum": ["low", "medium", "high"] },
+        "pace": { "enum": ["very_slow", "slow", "medium", "fast", "very_fast"] },
+        "wordsPerMinute": { "type": "number" },
+        "pitch": { "type": "string" },
+        "emphasis": { "type": "array", "items": { "type": "string" }, "description": "Zu betonende Wörter/Phrasen." },
+        "pauses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "afterText": { "type": "string" },
+              "durationMs": { "type": "number" },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "ssml": { "type": "string", "description": "Optional vorbereitetes SSML (falls TTS-Anbieter es unterstützt)." },
+    "providerOverrides": {
+      "type": "object",
+      "description": "Optionale TTS-providerspezifische Felder (voiceId beim Anbieter, style, stability etc.).",
+      "additionalProperties": true
+    },
+    "output": {
+      "type": "object",
+      "description": "Wird nach TTS-Generierung befüllt (später).",
+      "properties": {
+        "status": { "enum": ["pending", "queued", "generating", "done", "failed"], "default": "pending" },
+        "audioUrl": { "type": "string" },
+        "audioPath": { "type": "string" },
+        "durationSec": { "type": "number" },
+        "provider": { "type": "string" }
+      }
+    }
+  }
+}

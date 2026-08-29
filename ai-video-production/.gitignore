@@ -1,0 +1,16 @@
+# Secrets / lokale Provider-Konfiguration (NIEMALS committen)
+config/providers.json
+.env
+*.local
+
+# Render-/Medien-Ausgaben
+render/
+output/
+*.mp4
+*.mp3
+*.wav
+*.png
+*.jpg
+
+# Node
+node_modules/

@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-video-production/schemas/shots.schema.json",
+  "title": "Shot",
+  "description": "Ein Shot (Kameraeinstellung). Output des Cinematography Agents. Referenziert eine Szene via sceneId. Visuals referenzieren shotId.",
+  "type": "object",
+  "required": ["shotId", "sceneId", "index", "shotType"],
+  "additionalProperties": false,
+  "properties": {
+    "shotId": { "type": "string", "description": "Eindeutig, z. B. 'sc-01-sh-02'. Anker für visuals/voice-Sync." },
+    "sceneId": { "type": "string", "description": "Verweis auf scenes[].sceneId." },
+    "index": { "type": "integer", "description": "Reihenfolge innerhalb der Szene." },
+    "description": { "type": "string", "description": "Was im Bild passiert." },
+    "shotType": {
+      "enum": ["extreme_wide", "wide", "full", "medium_wide", "medium", "medium_close", "close_up", "extreme_close_up", "insert", "pov", "over_the_shoulder", "two_shot", "establishing", "aerial", "macro"],
+      "description": "Einstellungsgröße."
+    },
+    "angle": { "enum": ["eye_level", "low_angle", "high_angle", "dutch", "birds_eye", "worms_eye", "over_head"] },
+    "perspective": { "type": "string", "description": "Blickwinkel/Standpunkt der Kamera." },
+    "lens": {
+      "type": "object",
+      "properties": {
+        "focalLengthMm": { "type": "number", "description": "Brennweite in mm (z. B. 24, 35, 50, 85)." },
+        "aperture": { "type": "string", "description": "Blende (z. B. f/1.8)." },
+        "depthOfField": { "enum": ["shallow", "medium", "deep"] }
+      }
+    },
+    "cameraMovement": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["static", "pan", "tilt", "dolly", "truck", "pedestal", "zoom", "handheld", "steadicam", "crane", "drone", "orbit", "push_in", "pull_out", "tracking"] },
+        "speed": { "enum": ["slow", "medium", "fast"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "properties": {
+        "rule": { "type": "string", "description": "z. B. rule_of_thirds, centered, symmetry, leading_lines, golden_ratio." },
+        "framing": { "type": "string" },
+        "foreground": { "type": "string" },
+        "background": { "type": "string" },
+        "subjectPlacement": { "type": "string" }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "properties": {
+        "setup": { "type": "string", "description": "z. B. Rembrandt, high-key, low-key, natural, three-point." },
+        "keyLight": { "type": "string" },
+        "mood": { "type": "string" },
+        "timeOfDay": { "type": "string" },
+        "colorTemperature": { "type": "string" }
+      }
+    },
+    "durationSec": { "type": "number" },
+    "characterRefs": { "type": "array", "items": { "type": "string" } },
+    "cinematographerNotes": { "type": "string" }
+  }
+}
